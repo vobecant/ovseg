@@ -4,7 +4,7 @@
 from typing import Tuple
 import numpy as np
 import torch
-import clip
+from .clip import load as clip_load
 from detectron2.utils.comm import get_local_rank, synchronize
 
 
@@ -70,10 +70,10 @@ def build_clip_model(model: str, mask_prompt_depth: int = 0, frozen: bool = True
     rank = get_local_rank()
     if rank == 0:
         # download on rank 0 only
-        model, _ = clip.load(model, mask_prompt_depth=mask_prompt_depth, device="cpu")
+        model, _ = clip_load(model, mask_prompt_depth=mask_prompt_depth, device="cpu")
     synchronize()
     if rank != 0:
-        model, _ = clip.load(model, mask_prompt_depth=mask_prompt_depth, device="cpu")
+        model, _ = clip_load(model, mask_prompt_depth=mask_prompt_depth, device="cpu")
     synchronize()
     if frozen:
         for param in model.parameters():

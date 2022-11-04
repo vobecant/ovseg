@@ -6,6 +6,13 @@ import multiprocessing as mp
 import numpy as np
 from PIL import Image
 
+
+try:
+    import detectron2
+except:
+    import os
+    os.system('pip install git+https://github.com/facebookresearch/detectron2.git')
+
 from detectron2.config import get_cfg
 
 from detectron2.projects.deeplab import add_deeplab_config
@@ -14,6 +21,12 @@ from open_vocab_seg import add_ovseg_config
 from open_vocab_seg.utils import VisualizationDemo
 
 import gradio as gr
+
+import gdown
+
+ckpt_url = 'https://drive.google.com/uc?id=1cn-ohxgXDrDfkzC1QdO-fi8IjbjXmgKy'
+output = './ovseg_swinbase_vitL14_ft_mpt.pth'
+gdown.download(ckpt_url, output, quiet=False)
 
 def setup_cfg(config_file):
     # load config from file and command-line arguments
@@ -27,7 +40,7 @@ def setup_cfg(config_file):
 
 def inference(class_names, input_img):
     mp.set_start_method("spawn", force=True)
-    config_file = './configs/ovseg_swinB_vitL_demo.yaml'
+    config_file = './ovseg_swinB_vitL_demo.yaml'
     cfg = setup_cfg(config_file)
 
     demo = VisualizationDemo(cfg)
@@ -38,19 +51,18 @@ def inference(class_names, input_img):
 
     return Image.fromarray(np.uint8(visualized_output.get_image())).convert('RGB')
 
-# demo = gr.Interface(fn=greet, inputs="text", outputs="text")
-# demo.launch()
 
-
-examples = [['Oculus, Ukulele', './resources/demo_samples/sample_03.jpeg'],]
+examples = [['Oculus, Ukulele', './resources/demo_samples/sample_03.jpeg'],
+            ['Saturn V, toys, blossom', './resources/demo_samples/sample_01.jpeg'],
+            ['Golden gate, yacht', './resources/demo_samples/sample_02.jpeg'],]
 output_labels = ['segmentation map']
 
 title = 'OVSeg'
 
 description = """
-Gradio Demo for Open-Vocabulary Semantic Segmentation with Mask-adapted CLIP \n
-You may click on of the examples or upload your own image. \n
-OVSeg could perform open vocabulary segmentation, you may input more classes (seperate by comma).
+Gradio Demo for Open-Vocabulary Semantic Segmentation with Mask-adapted CLIP. \n
+OVSeg could perform open vocabulary segmentation, you may input more classes (seperate by comma). You may click on of the examples or upload your own image. \n
+It might take some time to process. Cheers!
 """
 
 article = """
@@ -59,7 +71,7 @@ article = """
 Open-Vocabulary Semantic Segmentation with Mask-adapted CLIP
 </a>
 |
-<a href='https://github.com' target='_blank'>Github Repo</a></p>
+<a href='https://github.com/facebookresearch/ov-seg' target='_blank'>Github Repo</a></p>
 """
 
 gr.Interface(

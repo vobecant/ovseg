@@ -6,7 +6,8 @@
 
 from typing import List
 
-import clip
+# import clip
+from .clip import tokenize
 import torch
 from torch import nn
 
@@ -130,7 +131,7 @@ class PredefinedPromptExtractor(PromptExtractor):
     def forward(self, noun_list: List[str], clip_model: nn.Module):
         text_features_bucket = []
         for template in self.templates:
-            noun_tokens = [clip.tokenize(template.format(noun)) for noun in noun_list]
+            noun_tokens = [tokenize(template.format(noun)) for noun in noun_list]
             text_inputs = torch.cat(noun_tokens).to(
                 clip_model.text_projection.data.device
             )

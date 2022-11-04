@@ -21,3 +21,5 @@ def build_text_prompt(cfg):
             "Prompt learner {} is not supported".format(cfg.TEXT_TEMPLATES)
         )
     return text_templates
+
+from .clip import tokenize
