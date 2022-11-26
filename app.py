@@ -24,9 +24,9 @@ import gradio as gr
 
 import gdown
 
-ckpt_url = 'https://drive.google.com/uc?id=1cn-ohxgXDrDfkzC1QdO-fi8IjbjXmgKy'
-output = './ovseg_swinbase_vitL14_ft_mpt.pth'
-gdown.download(ckpt_url, output, quiet=False)
+# ckpt_url = 'https://drive.google.com/uc?id=1cn-ohxgXDrDfkzC1QdO-fi8IjbjXmgKy'
+# output = './ovseg_swinbase_vitL14_ft_mpt.pth'
+# gdown.download(ckpt_url, output, quiet=False)
 
 def setup_cfg(config_file):
     # load config from file and command-line arguments
