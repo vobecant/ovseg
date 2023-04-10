@@ -55,9 +55,10 @@ def inference(class_names, proposal_gen, granularity, input_img):
 
 examples = [['Saturn V, toys, desk, sunflowers, white roses, chrysanthemums, carnations, green dianthus', 'Segment_Anything', 0.8, './resources/demo_samples/sample_01.jpeg'],
             ['red bench, yellow bench, blue bench, brown bench, green bench, blue chair, yellow chair, green chair', 'Segment_Anything', 0.8, './resources/demo_samples/sample_04.png'],
-            ['Saturn V, toys, blossom', 'MaskFormer', 1.0, './resources/demo_samples/sample_01.jpeg'],
-            ['Oculus, Ukulele', 'MaskFormer', 1.0, './resources/demo_samples/sample_03.jpeg'],
-            ['Golden gate, yacht', 'MaskFormer', 1.0, './resources/demo_samples/sample_02.jpeg'],]
+            # ['Saturn V, toys, blossom', 'MaskFormer', 1.0, './resources/demo_samples/sample_01.jpeg'],
+            # ['Oculus, Ukulele', 'MaskFormer', 1.0, './resources/demo_samples/sample_03.jpeg'],
+            # ['Golden gate, yacht', 'MaskFormer', 1.0, './resources/demo_samples/sample_02.jpeg'],
+            ]
 output_labels = ['segmentation map']
 
 title = 'OVSeg (+ Segment_Anything)'
