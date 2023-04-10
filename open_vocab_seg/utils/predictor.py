@@ -158,8 +158,8 @@ class SAMVisualizationDemo(object):
     def run_on_image(self, image, class_names):
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         visualizer = OVSegVisualizer(image, self.metadata, instance_mode=self.instance_mode, class_names=class_names)
-
-        masks = self.predictor.generate(image)
+        with torch.no_grad(), torch.cuda.amp.autocast():
+            masks = self.predictor.generate(image)
         pred_masks = [masks[i]['segmentation'][None,:,:] for i in range(len(masks))]
         pred_masks = np.row_stack(pred_masks)
         pred_masks = BitMasks(pred_masks)
