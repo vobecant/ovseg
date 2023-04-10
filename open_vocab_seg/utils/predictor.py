@@ -3,11 +3,19 @@
 
 import numpy as np
 import torch
+from torch.nn import functional as F
+import cv2
 
 from detectron2.data import MetadataCatalog
+from detectron2.structures import BitMasks
 from detectron2.engine.defaults import DefaultPredictor
 from detectron2.utils.visualizer import ColorMode, Visualizer
+from detectron2.modeling.postprocessing import sem_seg_postprocess
 
+import open_clip
+from segment_anything import SamAutomaticMaskGenerator, sam_model_registry 
+from open_vocab_seg.modeling.clip_adapter.adapter import PIXEL_MEAN, PIXEL_STD
+from open_vocab_seg.modeling.clip_adapter.utils import crop_with_mask
 
 class OVSegPredictor(DefaultPredictor):
     def __init__(self, cfg):
@@ -130,3 +138,88 @@ class VisualizationDemo(object):
             raise NotImplementedError
 
         return predictions, vis_output
+    
+class SAMVisualizationDemo(object):
+    def __init__(self, cfg, granularity, sam_path, ovsegclip_path, instance_mode=ColorMode.IMAGE, parallel=False):
+        self.metadata = MetadataCatalog.get(
+            cfg.DATASETS.TEST[0] if len(cfg.DATASETS.TEST) else "__unused"
+        )
+
+        self.cpu_device = torch.device("cpu")
+        self.instance_mode = instance_mode
+
+        self.parallel = parallel
+        self.granularity = granularity
+        sam = sam_model_registry["vit_h"](checkpoint=sam_path)
+        self.predictor = SamAutomaticMaskGenerator(sam)
+        self.clip_model, _, _ = open_clip.create_model_and_transforms('ViT-L-14', pretrained=ovsegclip_path)
+        self.clip_model.cuda()
+
+    def run_on_image(self, image, class_names):
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        visualizer = OVSegVisualizer(image, self.metadata, instance_mode=self.instance_mode, class_names=class_names)
+
+        masks = self.predictor.generate(image)
+        pred_masks = [masks[i]['segmentation'][None,:,:] for i in range(len(masks))]
+        pred_masks = np.row_stack(pred_masks)
+        pred_masks = BitMasks(pred_masks)
+        bboxes = pred_masks.get_bounding_boxes()
+
+        mask_fill = [255.0 * c for c in PIXEL_MEAN]
+
+        image = torch.as_tensor(image.astype("float32").transpose(2, 0, 1))
+
+        regions = []
+        for bbox, mask in zip(bboxes, pred_masks):
+            region, _ = crop_with_mask(
+                image,
+                mask,
+                bbox,
+                fill=mask_fill,
+            )
+            regions.append(region.unsqueeze(0))
+        regions = [F.interpolate(r.to(torch.float), size=(224, 224), mode="bicubic") for r in regions]
+
+        pixel_mean = torch.tensor(PIXEL_MEAN).reshape(1, -1, 1, 1)
+        pixel_std = torch.tensor(PIXEL_STD).reshape(1, -1, 1, 1)
+        imgs = [(r/255.0 - pixel_mean) / pixel_std for r in regions]
+        imgs = torch.cat(imgs)
+        if len(class_names) == 1:
+            class_names.append('others')
+        txts = [f'a photo of {cls_name}' for cls_name in class_names]
+        text = open_clip.tokenize(txts)
+
+        with torch.no_grad(), torch.cuda.amp.autocast():
+            image_features = self.clip_model.encode_image(imgs)
+            text_features = self.clip_model.encode_text(text)
+            image_features /= image_features.norm(dim=-1, keepdim=True)
+            text_features /= text_features.norm(dim=-1, keepdim=True)
+
+            class_preds = (100.0 * image_features @ text_features.T).softmax(dim=-1)
+        select_cls = torch.zeros_like(class_preds)
+
+        max_scores, select_mask = torch.max(class_preds, dim=0)
+        if len(class_names) == 2 and class_names[-1] == 'others':
+            select_mask = select_mask[:-1]
+        if self.granularity < 1:
+            thr_scores = max_scores * self.granularity
+            select_mask = []
+            for i, thr in enumerate(thr_scores):
+                cls_pred = class_preds[:,i]
+                locs = torch.where(cls_pred > thr)
+                select_mask.extend(locs[0].tolist())
+        for idx in select_mask:
+            select_cls[idx] = class_preds[idx]
+        semseg = torch.einsum("qc,qhw->chw", select_cls, pred_masks.tensor.float())
+
+        r = semseg
+        blank_area = (r[0] == 0)
+        pred_mask = r.argmax(dim=0).to('cpu')
+        pred_mask[blank_area] = 255
+        pred_mask = np.array(pred_mask, dtype=np.int)
+
+        vis_output = visualizer.draw_sem_seg(
+            pred_mask
+        )
+
+        return None, vis_output
