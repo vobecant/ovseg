@@ -204,6 +204,8 @@ class SAMVisualizationDemo(object):
         if self.granularity < 1:
             thr_scores = max_scores * self.granularity
             select_mask = []
+            if len(class_names) == 2 and class_names[-1] == 'others':
+                thr_scores = thr_scores[:-1]
             for i, thr in enumerate(thr_scores):
                 cls_pred = class_preds[:,i]
                 locs = torch.where(cls_pred > thr)
