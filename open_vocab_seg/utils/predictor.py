@@ -151,7 +151,7 @@ class SAMVisualizationDemo(object):
         self.parallel = parallel
         self.granularity = granularity
         sam = sam_model_registry["vit_h"](checkpoint=sam_path).cuda()
-        self.predictor = SamAutomaticMaskGenerator(sam)
+        self.predictor = SamAutomaticMaskGenerator(sam, points_per_batch=16)
         self.clip_model, _, _ = open_clip.create_model_and_transforms('ViT-L-14', pretrained=ovsegclip_path)
         self.clip_model.cuda()
 
