@@ -173,7 +173,7 @@ class SAMVisualizationDemo(object):
         for bbox, mask in zip(bboxes, pred_masks):
             region, _ = crop_with_mask(
                 image,
-                mask,
+                mask.bool(),
                 bbox,
                 fill=mask_fill,
             )
