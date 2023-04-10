@@ -191,7 +191,7 @@ class SAMVisualizationDemo(object):
 
         with torch.no_grad(), torch.cuda.amp.autocast():
             image_features = self.clip_model.encode_image(imgs.cuda().half())
-            text_features = self.clip_model.encode_text(text.cuda().half())
+            text_features = self.clip_model.encode_text(text.cuda())
             image_features /= image_features.norm(dim=-1, keepdim=True)
             text_features /= text_features.norm(dim=-1, keepdim=True)
 
@@ -210,7 +210,7 @@ class SAMVisualizationDemo(object):
                 select_mask.extend(locs[0].tolist())
         for idx in select_mask:
             select_cls[idx] = class_preds[idx]
-        semseg = torch.einsum("qc,qhw->chw", select_cls, pred_masks.tensor.float())
+        semseg = torch.einsum("qc,qhw->chw", select_cls.float(), pred_masks.tensor.float().cuda())
 
         r = semseg
         blank_area = (r[0] == 0)
