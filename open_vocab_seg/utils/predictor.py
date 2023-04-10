@@ -150,7 +150,7 @@ class SAMVisualizationDemo(object):
 
         self.parallel = parallel
         self.granularity = granularity
-        sam = sam_model_registry["vit_h"](checkpoint=sam_path)
+        sam = sam_model_registry["vit_h"](checkpoint=sam_path).cuda()
         self.predictor = SamAutomaticMaskGenerator(sam)
         self.clip_model, _, _ = open_clip.create_model_and_transforms('ViT-L-14', pretrained=ovsegclip_path)
         self.clip_model.cuda()
@@ -190,8 +190,8 @@ class SAMVisualizationDemo(object):
         text = open_clip.tokenize(txts)
 
         with torch.no_grad(), torch.cuda.amp.autocast():
-            image_features = self.clip_model.encode_image(imgs)
-            text_features = self.clip_model.encode_text(text)
+            image_features = self.clip_model.encode_image(imgs.half())
+            text_features = self.clip_model.encode_text(text.half())
             image_features /= image_features.norm(dim=-1, keepdim=True)
             text_features /= text_features.norm(dim=-1, keepdim=True)
 
