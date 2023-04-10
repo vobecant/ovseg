@@ -62,7 +62,7 @@ def crop_with_mask(
     new_image = torch.cat(
         [image.new_full((1, b - t, r - l), fill_value=val) for val in fill]
     )
-    # return image[:, t:b, l:r], mask[None, t:b, l:r]
+    mask = mask.bool()
     return image[:, t:b, l:r] * mask[None, t:b, l:r] + (~ mask[None, t:b, l:r]) * new_image, mask[None, t:b, l:r]
 
 
