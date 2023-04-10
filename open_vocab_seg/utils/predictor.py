@@ -190,8 +190,8 @@ class SAMVisualizationDemo(object):
         text = open_clip.tokenize(txts)
 
         with torch.no_grad(), torch.cuda.amp.autocast():
-            image_features = self.clip_model.encode_image(imgs.half())
-            text_features = self.clip_model.encode_text(text.half())
+            image_features = self.clip_model.encode_image(imgs.cuda().half())
+            text_features = self.clip_model.encode_text(text.cuda().half())
             image_features /= image_features.norm(dim=-1, keepdim=True)
             text_features /= text_features.norm(dim=-1, keepdim=True)
 
