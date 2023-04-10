@@ -62,8 +62,8 @@ def crop_with_mask(
     new_image = torch.cat(
         [image.new_full((1, b - t, r - l), fill_value=val) for val in fill]
     )
-    mask = mask.bool()
-    return image[:, t:b, l:r] * mask[None, t:b, l:r] + (~ mask[None, t:b, l:r]) * new_image, mask[None, t:b, l:r]
+    mask_bool = mask.bool()
+    return image[:, t:b, l:r] * mask[None, t:b, l:r] + (~ mask_bool[None, t:b, l:r]) * new_image, mask[None, t:b, l:r]
 
 
 def build_clip_model(model: str, mask_prompt_depth: int = 0, frozen: bool = True):

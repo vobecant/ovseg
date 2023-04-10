@@ -53,12 +53,12 @@ def inference(class_names, proposal_gen, granularity, input_img):
     return Image.fromarray(np.uint8(visualized_output.get_image())).convert('RGB')
 
 
-examples = [['Saturn V, toys, desk, sunflowers, white roses, chrysanthemums, carnations, green dianthus', 'Segment_Anything', 0.8, './resources/demo_samples/sample_01.jpeg'],
-            ['red bench, yellow bench, blue bench, brown bench, green bench, blue chair, yellow chair, green chair', 'Segment_Anything', 0.8, './resources/demo_samples/sample_04.png'],
-            # ['Saturn V, toys, blossom', 'MaskFormer', 1.0, './resources/demo_samples/sample_01.jpeg'],
-            # ['Oculus, Ukulele', 'MaskFormer', 1.0, './resources/demo_samples/sample_03.jpeg'],
-            # ['Golden gate, yacht', 'MaskFormer', 1.0, './resources/demo_samples/sample_02.jpeg'],
-            ]
+examples = [['Saturn V, toys, desk, wall, sunflowers, white roses, chrysanthemums, carnations, green dianthus', 'Segment_Anything', 0.8, './resources/demo_samples/sample_01.jpeg'],
+            ['red bench, yellow bench, blue bench, brown bench, green bench, blue chair, yellow chair, green chair, brown chair, yellow square painting, barrel, buddha statue', 'Segment_Anything', 0.8, './resources/demo_samples/sample_04.png'],
+            ['pillow, pipe, sweater, shirt, jeans jacket, shoes, cabinet, handbag, photo frame', 'Segment_Anything', 0.8, './resources/demo_samples/sample_05.png'],
+            ['Saturn V, toys, blossom', 'MaskFormer', 1.0, './resources/demo_samples/sample_01.jpeg'],
+            ['Oculus, Ukulele', 'MaskFormer', 1.0, './resources/demo_samples/sample_03.jpeg'],
+            ['Golden gate, yacht', 'MaskFormer', 1.0, './resources/demo_samples/sample_02.jpeg'],]
 output_labels = ['segmentation map']
 
 title = 'OVSeg (+ Segment_Anything)'
@@ -83,11 +83,11 @@ Open-Vocabulary Semantic Segmentation with Mask-adapted CLIP
 gr.Interface(
     inference,
     inputs=[
-        gr.inputs.Textbox(
+        gr.Textbox(
             lines=1, placeholder=None, default='', label='class names'),
-        gr.inputs.Radio(["Segment_Anything", "MaskFormer"], label="Proposal generator", default="Segment_Anything"),
-        gr.inputs.Slider(0, 1.0, 0.8, label="For Segment_Anything, Granularity of masks from 0 (most coarse) to 1 (most precise)"),
-        gr.inputs.Image(type='filepath'),
+        gr.Radio(["Segment_Anything", "MaskFormer"], label="Proposal generator", default="Segment_Anything"),
+        gr.Slider(0, 1.0, 0.8, label="For Segment_Anything only, granularity of masks from 0 (most coarse) to 1 (most precise)"),
+        gr.Image(type='filepath'),
     ],
     outputs=gr.outputs.Image(label='segmentation map'),
     title=title,
