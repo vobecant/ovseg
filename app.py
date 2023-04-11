@@ -45,7 +45,7 @@ def inference(class_names, proposal_gen, granularity, input_img):
     if proposal_gen == 'MaskFormer':
         demo = VisualizationDemo(cfg)
     elif proposal_gen == 'Segment_Anything':
-        demo = SAMVisualizationDemo(cfg, granularity, './sam_vit_h_4b8939.pth', './ovseg_clip_l_9a1909.pth')
+        demo = SAMVisualizationDemo(cfg, granularity, './sam_vit_l_0b3195.pth', './ovseg_clip_l_9a1909.pth')
     class_names = class_names.split(',')
     img = read_image(input_img, format="BGR")
     _, visualized_output = demo.run_on_image(img, class_names)

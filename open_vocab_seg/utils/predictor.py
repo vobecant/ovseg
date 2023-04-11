@@ -150,7 +150,7 @@ class SAMVisualizationDemo(object):
 
         self.parallel = parallel
         self.granularity = granularity
-        sam = sam_model_registry["vit_h"](checkpoint=sam_path).cuda()
+        sam = sam_model_registry["vit_l"](checkpoint=sam_path).cuda()
         self.predictor = SamAutomaticMaskGenerator(sam, points_per_batch=16)
         self.clip_model, _, _ = open_clip.create_model_and_transforms('ViT-L-14', pretrained=ovsegclip_path)
         self.clip_model.cuda()
@@ -189,12 +189,17 @@ class SAMVisualizationDemo(object):
         txts = [f'a photo of {cls_name}' for cls_name in class_names]
         text = open_clip.tokenize(txts)
 
-        with torch.no_grad(), torch.cuda.amp.autocast():
-            image_features = self.clip_model.encode_image(imgs.cuda().half())
-            text_features = self.clip_model.encode_text(text.cuda())
-            image_features /= image_features.norm(dim=-1, keepdim=True)
-            text_features /= text_features.norm(dim=-1, keepdim=True)
+        img_batches = torch.split(imgs, 32, dim=0)
 
+        with torch.no_grad(), torch.cuda.amp.autocast():
+            text_features = self.clip_model.encode_text(text.cuda())
+            text_features /= text_features.norm(dim=-1, keepdim=True)
+            image_features = []
+            for img_batch in img_batches:
+                image_feat = self.clip_model.encode_image(img_batch.cuda().half())
+                image_feat /= image_feat.norm(dim=-1, keepdim=True)
+                image_features.append(image_feat.detach())
+            image_features = torch.cat(image_features, dim=0)
             class_preds = (100.0 * image_features @ text_features.T).softmax(dim=-1)
         select_cls = torch.zeros_like(class_preds)
 
