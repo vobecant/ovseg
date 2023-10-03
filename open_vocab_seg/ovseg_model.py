@@ -3,28 +3,25 @@
 # Modified by Feng Liang from
 # https://github.com/MendelXu/zsseg.baseline/blob/master/mask_former/zero_shot_mask_former_model.py
 
-import logging
 from typing import Tuple
 
-import numpy as np
 import torch
-from torch import nn
-from torch.nn import functional as F
-
 from detectron2.config import configurable
 from detectron2.data import MetadataCatalog
 from detectron2.modeling import META_ARCH_REGISTRY
 from detectron2.modeling.backbone import Backbone
 from detectron2.modeling.postprocessing import sem_seg_postprocess
 from detectron2.structures import ImageList
-from detectron2.utils.logger import log_first_n
+from torch import nn
+from torch.nn import functional as F
+
+from .mask_former_model import MaskFormer
 from .modeling.clip_adapter import (
     ClipAdapter,
     MaskFormerClipAdapter,
     build_text_prompt,
 )
-from .mask_former_model import MaskFormer
-from .utils.misc import get_gt_binary_masks
+
 
 @META_ARCH_REGISTRY.register()
 class OVSeg(MaskFormer):
@@ -34,23 +31,23 @@ class OVSeg(MaskFormer):
 
     @configurable
     def __init__(
-        self,
-        *,
-        backbone: Backbone,
-        sem_seg_head: nn.Module,
-        clip_adapter: nn.Module,
-        criterion: nn.Module,
-        num_queries: int,
-        panoptic_on: bool,
-        object_mask_threshold: float,
-        overlap_threshold: float,
-        metadata,
-        size_divisibility: int,
-        sem_seg_postprocess_before_inference: bool,
-        clip_ensemble: bool,
-        clip_ensemble_weight: float,
-        pixel_mean: Tuple[float],
-        pixel_std: Tuple[float],
+            self,
+            *,
+            backbone: Backbone,
+            sem_seg_head: nn.Module,
+            clip_adapter: nn.Module,
+            criterion: nn.Module,
+            num_queries: int,
+            panoptic_on: bool,
+            object_mask_threshold: float,
+            overlap_threshold: float,
+            metadata,
+            size_divisibility: int,
+            sem_seg_postprocess_before_inference: bool,
+            clip_ensemble: bool,
+            clip_ensemble_weight: float,
+            pixel_mean: Tuple[float],
+            pixel_std: Tuple[float],
     ):
         """
         Args:
@@ -200,7 +197,7 @@ class OVSeg(MaskFormer):
 
             processed_results = []
             for mask_cls_result, mask_pred_result, input_per_image, image_size in zip(
-                mask_cls_results, mask_pred_results, batched_inputs, images.image_sizes
+                    mask_cls_results, mask_pred_results, batched_inputs, images.image_sizes
             ):
                 height = image_size[0]
                 width = image_size[1]
@@ -226,7 +223,6 @@ class OVSeg(MaskFormer):
                     processed_results[-1]["panoptic_seg"] = panoptic_r
 
             return processed_results
-
 
     def semantic_inference(self, mask_cls, mask_pred, image, class_names):
         mask_cls = F.softmax(mask_cls, dim=-1)[..., :-1]
@@ -270,23 +266,23 @@ class OVSegDEMO(MaskFormer):
 
     @configurable
     def __init__(
-        self,
-        *,
-        backbone: Backbone,
-        sem_seg_head: nn.Module,
-        clip_adapter: nn.Module,
-        criterion: nn.Module,
-        num_queries: int,
-        panoptic_on: bool,
-        object_mask_threshold: float,
-        overlap_threshold: float,
-        metadata,
-        size_divisibility: int,
-        sem_seg_postprocess_before_inference: bool,
-        clip_ensemble: bool,
-        clip_ensemble_weight: float,
-        pixel_mean: Tuple[float],
-        pixel_std: Tuple[float],
+            self,
+            *,
+            backbone: Backbone,
+            sem_seg_head: nn.Module,
+            clip_adapter: nn.Module,
+            criterion: nn.Module,
+            num_queries: int,
+            panoptic_on: bool,
+            object_mask_threshold: float,
+            overlap_threshold: float,
+            metadata,
+            size_divisibility: int,
+            sem_seg_postprocess_before_inference: bool,
+            clip_ensemble: bool,
+            clip_ensemble_weight: float,
+            pixel_mean: Tuple[float],
+            pixel_std: Tuple[float],
     ):
         """
         Args:
@@ -385,6 +381,12 @@ class OVSegDEMO(MaskFormer):
 
         features = self.backbone(images.tensor)
         outputs = self.sem_seg_head(features)
+
+        nmasks = outputs['pred_masks'].shape[1]
+        pred_masks_onehot = torch.nn.functional.one_hot(outputs['pred_masks'][0].argmax(0), nmasks).permute(2, 0, 1)
+        dense_features = torch.einsum("qc,qhw->chw", outputs['pred_logits'][0].float(),
+                                      pred_masks_onehot.float().cuda())
+
         class_names = batched_inputs[0]["class_names"]
         if len(class_names) == 1:
             # Because classification is performed in a 'contrastive' manner, adding others to represent other concepts
@@ -405,7 +407,7 @@ class OVSegDEMO(MaskFormer):
 
         processed_results = []
         for mask_cls_result, mask_pred_result, input_per_image, image_size in zip(
-            mask_cls_results, mask_pred_results, batched_inputs, images.image_sizes
+                mask_cls_results, mask_pred_results, batched_inputs, images.image_sizes
         ):
             height = image_size[0]
             width = image_size[1]
@@ -421,10 +423,7 @@ class OVSegDEMO(MaskFormer):
             r = sem_seg_postprocess(r, image_size, height, width)
             processed_results.append({"sem_seg": r})
 
-        return processed_results
-
-
-
+        return processed_results, dense_features
 
     def demo_inference(self, mask_cls, mask_pred, image, class_names):
         mask_cls = F.softmax(mask_cls, dim=-1)[..., :-1]

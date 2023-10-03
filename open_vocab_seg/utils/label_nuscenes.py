@@ -253,7 +253,7 @@ class VisualizationDemo(object):
         else:
             self.predictor = OVSegPredictor(cfg)
 
-    def run_on_image(self, image, class_names, show=False, compute_pca=False):
+    def run_on_image(self, image, class_names, compute_pca=False):
         """
         Args:
             image (np.ndarray): an image of shape (H, W, C) (in BGR order).
@@ -264,20 +264,17 @@ class VisualizationDemo(object):
         """
         # Convert image from OpenCV BGR format to Matplotlib RGB format.
         image = image[:, :, ::-1]
-        if show:
-            visualizer = OVSegVisualizer(image, self.metadata, instance_mode=self.instance_mode,
+        visualizer = OVSegVisualizer(image, self.metadata, instance_mode=self.instance_mode, class_names=class_names)
+        visualizer_dense = OVSegVisualizer(copy.deepcopy(image), self.metadata, instance_mode=self.instance_mode,
+                                           class_names=class_names)
+        visualizer_seg = OVSegVisualizer(copy.deepcopy(image), self.metadata, instance_mode=self.instance_mode,
                                          class_names=class_names)
-        # visualizer_dense = OVSegVisualizer(copy.deepcopy(image), self.metadata, instance_mode=self.instance_mode,
-        #                                    class_names=class_names)
-        # visualizer_seg = OVSegVisualizer(copy.deepcopy(image), self.metadata, instance_mode=self.instance_mode,
-        #                                  class_names=class_names)
 
-        # image_rgb = copy.deepcopy(image)
+        image_rgb = copy.deepcopy(image)
         time_s = time.time()
         with torch.no_grad():
             predictions, dense_features = self.predictor(image, class_names)
 
-        vis_output = None
         if "sem_seg" in predictions:
             r = predictions["sem_seg"]
             blank_area = (r[0] == 0)
@@ -285,10 +282,9 @@ class VisualizationDemo(object):
             pred_mask[blank_area] = 255
             pred_mask = np.array(pred_mask, dtype=np.int)
 
-            if show:
-                vis_output = visualizer.draw_sem_seg(
-                    pred_mask
-                )
+            vis_output = visualizer.draw_sem_seg(
+                pred_mask
+            )
         else:
             raise NotImplementedError
 
